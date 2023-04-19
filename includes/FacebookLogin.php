@@ -190,3 +190,5 @@ final class FacebookLogin
 }
 
 FacebookLogin::init();
+
+?>

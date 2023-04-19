@@ -79,6 +79,11 @@ final class General
 
         add_action('init', [__CLASS__, 'add_endpoint']);
 
+		add_action( 'plugins_loaded', [__CLASS__, 'socialify_textdomain']);
+
+		add_action( 'show_user_profile', [__CLASS__, 'socialify_user_profile_settings']);
+		add_action( 'edit_user_profile', [__CLASS__, 'socialify_user_profile_settings']);
+
         add_filter( "plugin_action_links_" . self::$plugin_basename, [__CLASS__, 'add_settings_url_to_plugins_list'] );
 
         add_action('admin_menu', function(){
@@ -164,6 +169,7 @@ final class General
 
         catch(\Exception $e){
             error_log('Socialify: Oops, we ran into an issue! ' . $e->getMessage());
+
             wp_redirect(site_url());
             exit;
         }
@@ -202,7 +208,7 @@ final class General
             return false;
         }
 
-        $auth_id_meta_key = 'socialify_' . $process_data['provider'] . '_id_' . $user_data->identifier;
+        $auth_id_meta_key = 'socialify_' . $process_data['provider'] . '_id';
         update_user_meta($user->ID, $auth_id_meta_key, $user_data->identifier);
 
         self::auth_user($user);
@@ -212,7 +218,7 @@ final class General
 
     public static function get_connected_user($identifier = '', $provider = ''){
 
-        $auth_id_meta_key = 'socialify_' . $provider . '_id_' . $identifier;
+        $auth_id_meta_key = 'socialify_' . $provider . '_id';
         $users = get_users(array(
             'meta_key' => $auth_id_meta_key,
             'meta_value' => $identifier,
@@ -236,11 +242,15 @@ final class General
         }
 
         $user_data = [
-            'user_login' => self::generate_new_userlogin(),
+            //'user_login' => self::generate_new_userlogin(),
             'user_pass'  => wp_generate_password( 11, false ),
             'user_email' => sanitize_email($userProfile->email),
         ];
 
+		if( ! empty($userProfile->firstName) && ! empty($userProfile->lastName) ){   
+			$user_data['user_login'] = sanitize_text_field($userProfile->firstName) . ' ' . sanitize_text_field($userProfile->lastName);
+        }
+	
         if( ! empty($userProfile->firstName) ){
             $user_data['first_name'] = sanitize_text_field($userProfile->firstName);
         }
@@ -257,14 +267,14 @@ final class General
             return false;
         }
 
-        if(!$user = get_user_by('id', $user_id)){
+        if( ! $user = get_user_by('id', $user_id)){
             return false;
         }
 
         return $user;
-    }
+	}
 
-    public static function generate_new_userlogin(){
+	public static function generate_new_userlogin(){
         $users_ids  = get_users('fields=ID&number=3&orderby=registered&order=DESC');
         $last_id    = max($users_ids);
         $new_id     = $last_id + 1;
@@ -318,6 +328,53 @@ final class General
             flush_rewrite_rules($hard = false);
         }
     }
+
+	public static function socialify_textdomain() {
+		load_plugin_textdomain( 'socialify', FALSE, basename( dirname( __FILE__ ) ) . '/languages/' );
+	}
+
+	public static function socialify_user_profile_settings( $user ) {
+		if ( FacebookLogin::is_active() || GoogleLogin::is_active() == true ) {
+		?>
+		<h3><?php esc_html_e( 'Single Sign-On Settings', 'socialify' ); ?></h3>
+		<p><?= __('Connect your account and authorize your desired provider(s) for easy access to this website.', 'socialify'); ?></p>
+
+		<table class="form-table">
+			<?php if ( FacebookLogin::is_active() == true ) { ?>
+			<tr>
+				<th><label for="facebook_sso"><?php esc_html_e( 'Facebook', 'socialify' ); ?></label></th>
+				<td>
+					<?php 
+					$user = get_user_by('id', get_current_user_id());
+					$meta_f = get_user_meta($user->ID, 'socialify_facebook_id', true);
+					if( is_user_logged_in() && !empty($meta_f) ) { ?> 
+						<button type="button" name="facebook_sso" value="logout" id="facebook_sso" class="button hide-if-no-js"><?= __('Disconnect', 'socialify'); ?></button><p style="display: inline; min-height: 30px; padding:10px; line-height: 2.15384615;"><?= __('your Facebook account.', 'socialify'); ?></p>
+					<?php } else { ?>
+						<button type="button" name="facebook_sso" value="login" id="facebook_sso" class="button hide-if-no-js"><?= __('Connect', 'socialify'); ?></button><p style="display: inline; min-height: 30px; padding:10px; line-height: 2.15384615;"><?= __('your Facebook account.', 'socialify'); ?></p>
+					<?php } ?>
+				</td>
+			</tr>
+			<?php }
+
+			if ( GoogleLogin::is_active() == true ) { ?>
+			<tr>
+				<th><label for="google_sso"><?php esc_html_e( 'Google', 'socialify' ); ?></label></th>
+				<td>
+					<?php 
+					$user = get_user_by('id', get_current_user_id());
+					$meta_g = get_user_meta($user->ID, 'socialify_google_id', true);
+					if( is_user_logged_in() && !empty($meta_g) ) { ?> 
+						<button type="button" name="google_sso" value="logout" id="google_sso"class="button hide-if-no-js"><?= __('Disconnect', 'socialify'); ?></button><p style="display: inline; min-height: 30px; padding:10px; line-height: 2.15384615;"><?= __('your Google account.', 'socialify'); ?></p>
+					<?php } else { ?>
+						<button type="button" name="google_sso" value="login" id="google_sso" class="button hide-if-no-js"><?= __('Connect', 'socialify'); ?></button><p style="display: inline; min-height: 30px; padding:10px; line-height: 2.15384615;"><?= __('your Google account.', 'socialify'); ?></p>
+					<?php } ?>
+				</td>
+			</tr>
+			<?php } ?>
+		</table>
+		<?php
+		}
+	}
 
 }
 
