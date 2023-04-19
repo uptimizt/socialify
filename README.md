@@ -1,15 +1,22 @@
 Socialify for WordPress - Social Login, OAuth2, HybridAuth
 =============
 
-## Features
+# Features
 - Google Login
-- Facebook Login
-- Yandex Login https://github.com/uptimizt/socialify-yandex-login
-- Vkontakte Login https://github.com/uptimizt/socialify-vkontakte-login
+- auto register user
+- automatic user detection by e-mail
+- self hosted, complete security, no 3rd cloud storage
 
-## Other
 
-sponsor link 
-https://bizzapps.ru/p/telegram-open-network/
+# Addons
+- Facebook
+- Instagram
+- GitHub
+- Telegram
+- Yandex
+- Vkontakte
+- the list of providers will be expanded soon
 
-https://github.com/uptimizt/tecomments
+# roadmap
+- apple
+- microsoft
